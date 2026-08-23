@@ -1,0 +1,10 @@
+# Copy this file outside version control and replace each value.
+main_dataset_root: /path/to/UCMerced_DM-AER_Pixel_Patch_Diffusion_Inpaint_Geosynth
+fsc_manifest: /path/to/fsc_manifest.csv
+checkpoints_root: /path/to/checkpoints
+outputs_root: /path/to/outputs
+
+foundation_checkpoints:
+  georsclip_b32: /path/to/GeoRSCLIP-ViT-B-32.pt
+  remoteclip_b32: /path/to/RemoteCLIP-ViT-B-32.pt
+  satdino_b16: /path/to/SatDINO-ViT-B-16.pt

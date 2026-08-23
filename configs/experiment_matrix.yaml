@@ -1,0 +1,93 @@
+paper: "Towards a Better Characterization of Adversarial Attacks in Geospatial Imagery"
+paper_doi: "10.3390/rs18122041"
+seed: 42
+
+main_models:
+  - swin_b
+  - swin_t
+  - vit_l16
+  - vit_b16
+  - resnet152
+  - resnet101
+  - resnet50
+  - resnet18
+  - effnetv2_s
+  - effnet_b5
+  - effnet_b4
+  - effnet_b0
+  - densenet201
+  - densenet169
+  - densenet121
+  - coatnet_0
+  - georsclip_b32
+  - remoteclip_b32
+  - satdino_b16
+  - satlas_swin_b
+
+representative_models:
+  - swin_b
+  - effnet_b5
+  - swin_t
+  - satlas_swin_b
+  - georsclip_b32
+
+table_2_protocol:
+  common:
+    input_size: [3, 224, 224]
+    resize_interpolation: bicubic
+    normalization_mean: [0.485, 0.456, 0.406]
+    normalization_std: [0.229, 0.224, 0.225]
+    optimizer: AdamW
+    learning_rate: 0.00003
+    weight_decay: 0.00001
+    scheduler:
+      name: CosineAnnealingWarmRestarts
+      T_0: 5
+      T_mult: 2
+      eta_min: 0.000001
+    seed: 42
+    deterministic_where_supported: true
+  main:
+    max_epochs: 30
+    checkpoint_metric: validation_macro_f1
+    early_stopping_patience: 5
+    min_delta: 0.0001
+    batch_size_by_model:
+      swin_b: 72
+      default: 64
+  fsc:
+    max_epochs: 20
+    checkpoint_metric: validation_selection_metric
+    early_stopping_patience: 3
+    min_delta: 0.0001
+    finetuning_batch_size: 32
+    zero_adaptation_batch_size: 64
+
+fake_lomo_holdouts:
+  - FAKE-GeoSynth
+  - FAKE-inpaint
+  - FAKE-StyleGAN2
+
+pixel_variants:
+  main_budget: 200
+  stress_budgets: [50, 400]
+  no_oracle_budget: 200
+  patch_size: 5
+  epsilon: 0.05
+  dummy_weight: 0.05
+
+patch_variants:
+  main_geometry: circle
+  unseen_geometry: square
+  radius: 5
+  iterations: 50
+  momentum: 0.75
+  reconstructed_unverified_defaults:
+    num_patches: 1
+    step_size: 0.01
+    tv_weight: 0.0001
+    stop_confidence: 0.05
+
+fsc_shots_per_class: [50, 200, 1000]
+augmentation_regimes: [lightaug, medaug, heavyaug]
+triage_prevalence: [0.01, 0.05, 0.10]
