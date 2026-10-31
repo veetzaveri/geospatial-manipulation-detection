@@ -1,28 +1,38 @@
-# Model and checkpoint notes
+# Models and checkpoint inputs
 
-The clean registry exposes all 20 paper architecture keys through `crp_benchmark.models.MODEL_SPECS`.
+The registry in `crp_benchmark.models.MODEL_SPECS` exposes all 20 architectures in Table 1.
 
-## Recovered identifiers
+## Model identifiers
 
 - Swin-B: `swin_base_patch4_window7_224.ms_in22k`.
-- EfficientNetV2-S: prior code used the legacy timm identifier `tf_efficientnetv2_s_in21ft1k`; the clean registry first tries the current dotted alias and then the legacy alias.
+- EfficientNetV2-S: `tf_efficientnetv2_s.in21k_ft_in1k`, with the legacy timm alias `tf_efficientnetv2_s_in21ft1k` as a fallback.
 - Satlas-Swin-B: `Aerial_SwinB_SI`, `fpn=True`, classification head.
+- SatDINO-B/16: `crp_benchmark.satdino.SatDINOEncoder`, with the GSD register and 198-token positional embedding.
+- Remaining identifiers are specified in `MODEL_SPECS`.
 
-## External checkpoint arguments
+All models use the 224x224 RGB preprocessing and ImageNet normalization in Table 2.
 
-GeoRSCLIP-B/32, RemoteCLIP-B/32, and SatDINO-B/16 require `--pretrained-checkpoint`. Foundation weights are not redistributed here. Verify the original sources and licenses before downloading or releasing derived checkpoints.
+## Foundation weights for initial training
 
-- GeoRSCLIP/RS5M: <https://github.com/om-ai-lab/RS5M>
-- RemoteCLIP: <https://github.com/ChenDelong1999/RemoteCLIP>
-- SatDINO: <https://github.com/strakaj/SatDINO>
-- SatlasPretrain models: <https://github.com/allenai/satlaspretrain_models>
+GeoRSCLIP-B/32, RemoteCLIP-B/32, and SatDINO-B/16 accept foundation weights through `--pretrained-checkpoint`.
 
-## Reconstructed standard identifiers
+- [GeoRSCLIP / RS5M](https://github.com/om-ai-lab/RS5M)
+- [RemoteCLIP](https://github.com/ChenDelong1999/RemoteCLIP)
+- [SatDINO](https://github.com/strakaj/SatDINO)
+- [SatlasPretrain](https://github.com/allenai/satlaspretrain_models)
 
-The remaining timm identifiers implement the architecture/pretraining descriptions in Table 1, but the original per-model source files were not recoverable. Package/version aliases can change. Record the resolved model identifier and package version in every run metadata file, then compare performance with the published values before treating a rerun as equivalent.
+Use the official SatDINO ViT-B/16 teacher-backbone checkpoint. Loading is strict, including the GSD register. A standard ViT checkpoint has a different architecture.
 
-## Satlas preprocessing
+Satlas uses its upstream package model-construction workflow. Standard timm models obtain their foundation weights through timm.
 
-The clean `satlas_swin_b` entry point follows published Table 2: bicubic resize to 224x224
-and ImageNet normalization. This intentionally makes the paper, rather than an incomplete
-historical reconstruction, the runnable protocol specification.
+## Experiment checkpoints
+
+Training saves `best_checkpoint.pth` containing the full model state and run metadata. Evaluation and FSC adaptation restore the corresponding checkpoint with strict state-dictionary loading.
+
+GeoRSCLIP, RemoteCLIP, and SatDINO experiment checkpoints contain the encoder weights, so those models do not need a separate foundation checkpoint when restoring a complete experiment checkpoint.
+
+For FSC adaptation, use the matching in-domain model and task checkpoint. Binary zero-adaptation evaluation additionally uses the in-domain `validation_threshold.json`; adapted binary comparisons use the threshold selected on the FSC validation split.
+
+## Release scope
+
+This repository distributes code. Datasets and weight files are supplied separately by the person running the experiments, subject to their source licenses and access terms.
