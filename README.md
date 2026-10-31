@@ -8,8 +8,6 @@ This release implements the paper's REAL/PIXEL/PATCH/FAKE benchmark, all reporte
 
 ## Scope and provenance
 
-Only one original executable file was recoverable from the prior project conversations: the Swin-B main experiment script in `archive/recovered/`. A readable LF-normalized copy and a ZIP preserving the original CRLF bytes are supplied. The clean, reusable pipeline in `src/` and `scripts/` was reconstructed from that file, the published paper, and recoverable prior-chat implementation details.
-
 The clean scripts use the published paper as their specification, including Table 2. The
 historical Swin-B file is retained only as archival provenance and is not called by the clean
 entry points. See [docs/PROVENANCE.md](docs/PROVENANCE.md) for the reconstruction boundary.
