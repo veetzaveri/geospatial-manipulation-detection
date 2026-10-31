@@ -1,67 +1,87 @@
-# CRP Geospatial Manipulation Benchmark Code
+# Geospatial Manipulation Detection
 
-Code release for:
+Training and evaluation code accompanying:
 
-> Veet Zaveri and Arun S. Maiya, “Towards a Better Characterization of Adversarial Attacks in Geospatial Imagery,” *Remote Sensing* 18(12), 2041 (2026). https://doi.org/10.3390/rs18122041
+> Veet Zaveri and Arun S. Maiya, "Towards a Better Characterization of Adversarial Attacks in Geospatial Imagery," *Remote Sensing* 18(12), 2041 (2026). https://doi.org/10.3390/rs18122041
 
-This release implements the paper's REAL/PIXEL/PATCH/FAKE benchmark, all reported follow-on experiments, dataset-generation procedures, and statistical analyses.
+The repository provides implementations of the REAL/PIXEL/PATCH/FAKE benchmark and the paper's follow-on experiments: FAKE source shift, PIXEL/PATCH variants, specialized binary detection, external FSC transfer and adaptation, augmentation sensitivity, and low-prevalence triage.
 
-## Scope and provenance
+This is a **code-only release**. Datasets, pretrained foundation weights, experiment checkpoints, and generated results are not bundled. Supply these locally using the command-line arguments below.
 
-The clean scripts use the published paper as their specification, including Table 2. The
-historical Swin-B file is retained only as archival provenance and is not called by the clean
-entry points. See [docs/PROVENANCE.md](docs/PROVENANCE.md) for the reconstruction boundary.
+## Experiments
 
-## Published Table 2 protocol
+Paths in the table are relative to `scripts/`.
 
-| Component | Main benchmark | FSC adaptation |
-|---|---|---|
-| Input/preprocessing | RGB 224x224, bicubic, tensor, ImageNet mean/std | Same deterministic preprocessing |
-| Training augmentation | LightAug: horizontal flip p=0.5; brightness/contrast/saturation 0.05 | Same for fine-tuning; none for validation/test/zero adaptation |
-| Loss | Four-way cross-entropy; binary BCE-with-logits | Same task-appropriate losses |
-| Optimizer | AdamW, lr 3e-5, weight decay 1e-5 | Same |
-| Batch size | Fixed by architecture in the reported 64-72 range | 32 fine-tuning; 64 zero adaptation |
-| Maximum epochs | 30 | 20; zero adaptation has no training |
-| Scheduler | Cosine warm restarts: T0=5, Tmult=2, eta-min=1e-6 | Same |
-| Early stopping | Validation macro-F1, min delta 1e-4, patience 5 | Validation selection metric, min delta 1e-4, patience 3 |
-| Decisions | Four-way argmax; binary threshold maximizes validation attack F1 | Argmax/exact-family; binary validation threshold maximizes attack F1 |
-| Reproducibility | Seed 42 and deterministic CuDNN/PyTorch settings where supported | Same |
-
-## Repository contents
-
-| Experiment | Script(s) |
+| Paper results | Entry points |
 |---|---|
-| Main 20-model four-way benchmark and FAKE subtype metrics | `scripts/train_main.py`, `scripts/evaluate_main.py` |
-| Specialized REAL/FAKE, REAL/PIXEL, REAL/PATCH detectors | `scripts/train_binary.py` |
-| FAKE leave-one-method-out source shift | `scripts/train_fake_lomo.py` |
-| PIXEL B=50/B=400 and unseen square PATCH | `scripts/generate_pixel.py`, `scripts/generate_patch.py`, `scripts/evaluate_attack_variant.py` |
-| No-Faster-R-CNN/random-placement PIXEL control | `scripts/generate_pixel.py --placement random`, `scripts/evaluate_pixel_no_oracle.py` |
-| FSC source-ID-disjoint splits and zero adaptation | `scripts/prepare_fsc_splits.py`, `scripts/evaluate_fsc_zero_adaptation.py` |
-| FSC 50/200/1000-image-per-class full fine-tuning | `scripts/finetune_fsc.py` |
-| Binary vs Multi-C vs Multi-E, paired bootstrap, McNemar | `scripts/compare_binary_multi.py`, `scripts/summarize_fsc_comparisons.py` |
-| Light/medium/heavy augmentation | `scripts/run_augmentation_study.py` |
-| Low-prevalence triage and false alarms | `scripts/low_prevalence_triage.py` |
-| FAKE-inpaint generation and feathered composite | `scripts/generate_fake_inpaint.py`, `scripts/feather_inpaint_outputs.py` |
-| FAKE-GeoSynth generation | `scripts/generate_fake_geosynth.py` |
-| Base split construction and final assembly | `scripts/prepare_base_splits.py`, `scripts/assemble_benchmark.py`, `scripts/validate_dataset.py` |
+| Tables 3-5: 20-model four-way benchmark and FAKE-subtype recall | `train_main.py`, `evaluate_main.py` |
+| Tables 6-7: FAKE leave-one-method-out (LOMO) | `train_fake_lomo.py` |
+| Tables 8-9: PIXEL B=50/B=400 and unseen square PATCH | `generate_pixel.py`, `generate_patch.py`, `evaluate_attack_variant.py` |
+| Table 10: random-placement/no-oracle PIXEL | `generate_pixel.py --placement random`, `evaluate_pixel_no_oracle.py` |
+| Table 11: in-domain binary versus Multi-C | `train_binary.py`, `compare_binary_multi.py --setting in-domain` |
+| Tables 12-14: FSC zero adaptation | `evaluate_fsc_zero_adaptation.py`, `compare_binary_multi.py --setting fsc`, `summarize_fsc_comparisons.py` |
+| Tables 15-21: FSC adaptation at 50/200/1000 images per class | `finetune_fsc.py`, comparison and summary scripts |
+| Table 22: augmentation severity | `run_augmentation_study.py` |
+| Table 23: low-prevalence screening | `low_prevalence_triage.py` |
 
-The complete table-to-script mapping is in [docs/EXPERIMENT_MANIFEST.md](docs/EXPERIMENT_MANIFEST.md).
-The parameter-level audit is in [docs/PAPER_PROTOCOL_MAP.md](docs/PAPER_PROTOCOL_MAP.md).
-Release-candidate checks and their limits are recorded in [docs/VALIDATION.md](docs/VALIDATION.md).
+Dataset preparation and generation are provided by `prepare_base_splits.py`, `generate_pixel.py`, `generate_patch.py`, `generate_fake_inpaint.py`, `feather_inpaint_outputs.py`, `generate_fake_geosynth.py`, `assemble_benchmark.py`, `validate_dataset.py`, and `prepare_fsc_splits.py`. FAKE-StyleGAN2 samples are sourced from DM-AER rather than trained/generated by this repository.
 
 ## Installation
 
-The paper reports Python 3.13.2, PyTorch 2.7.0+cu126, torchvision 0.22.0+cu126, Ubuntu 22.04, and a 24 GB Quadro P6000 GPU.
+Run installation commands from the repository root.
+
+The paper reports Python 3.13.2, PyTorch 2.7.0+cu126, torchvision 0.22.0+cu126, Ubuntu 22.04, and a 24 GB NVIDIA Quadro P6000 GPU.
 
 ```bash
 conda env create -f environment.yml
 conda activate crp-geospatial-benchmark
 ```
 
-`environment.yml` pins the paper's `torch==2.7.0+cu126` and
-`torchvision==0.22.0+cu126` wheels. `requirements.txt` provides the equivalent pip setup.
+Alternatively, in a compatible Python environment:
 
-## Expected main-dataset layout
+```bash
+python -m pip install -r requirements.txt
+python -m pip install -e ".[generation,remote_models,dev]"
+```
+
+The environment files specify the paper's CUDA 12.6 PyTorch wheels. The editable installation makes `crp_benchmark` importable by the scripts.
+
+### Foundation models
+
+For **initial training**, GeoRSCLIP-B/32, RemoteCLIP-B/32, and SatDINO-B/16 require `--pretrained-checkpoint /path/to/foundation_weights`. Use the corresponding upstream sources:
+
+- [GeoRSCLIP / RS5M](https://github.com/om-ai-lab/RS5M)
+- [RemoteCLIP](https://github.com/ChenDelong1999/RemoteCLIP)
+- [SatDINO](https://github.com/strakaj/SatDINO)
+- [SatlasPretrain](https://github.com/allenai/satlaspretrain_models)
+
+SatDINO uses a ViT-B/16 encoder with its GSD register and 198-token positional embedding. Supply the official ViT-B/16 teacher-backbone checkpoint; loading is strict. A plain ViT checkpoint is not a substitute.
+
+Complete experiment checkpoints for GeoRSCLIP, RemoteCLIP, and SatDINO can be restored for evaluation or FSC fine-tuning without supplying the foundation checkpoint again. Satlas uses its upstream package model-construction workflow.
+
+## Training protocol: Table 2
+
+| Component | Main benchmark and binary specialists | FSC adaptation |
+|---|---|---|
+| Input | RGB, bicubic resize to 224x224 | Same |
+| Normalization | ImageNet mean [0.485, 0.456, 0.406], std [0.229, 0.224, 0.225] | Same |
+| Training augmentation | LightAug: horizontal flip p=0.5; brightness/contrast/saturation jitter 0.05 | Same |
+| Validation/test preprocessing | Deterministic; no augmentation | Same, including zero adaptation |
+| Loss | Four-way cross-entropy; binary BCE-with-logits | Same task-appropriate losses |
+| Optimizer | AdamW, learning rate 3e-5, weight decay 1e-5 | Same |
+| Batch size | Swin-B: 72; other architectures: 64 | 32 fine-tuning; 64 zero adaptation |
+| Maximum epochs | 30 | 20; no training for zero adaptation |
+| Scheduler | CosineAnnealingWarmRestarts: T_0=5, T_mult=2, eta_min=1e-6 | Same |
+| Early stopping | Validation macro-F1; minimum improvement 1e-4; patience 5 | Validation macro-F1 for four-way models, validation attack F1 for binary models; minimum improvement 1e-4; patience 3 |
+| Decisions | Four-way argmax; binary threshold maximizing validation attack F1 | Same; exact-family scoring for Multi-E comparisons |
+| Seed | 42 | 42 |
+| Determinism | Deterministic CuDNN/PyTorch where supported; runtime warnings recorded | Same |
+
+The main batch-size defaults are within Table 2's reported 64-72 range and remain fixed by architecture. A `--batch-size` override is available; record any deviation when comparing runs.
+
+FSC adaptation starts from the corresponding in-domain checkpoint and updates the full backbone and classification head. Zero adaptation performs inference only and reuses the in-domain validation threshold for binary detectors.
+
+## Dataset layout
 
 ```text
 DATASET_ROOT/
@@ -79,139 +99,142 @@ DATASET_ROOT/
     ...same labels...
 ```
 
-Validate counts and matched REAL/PIXEL/PATCH filenames:
+Training contains 21,680 images per class; validation and test each contain 2,710 images per class. REAL/PIXEL/PATCH use matched split-specific base images.
+
+FAKE subtype counts for train/validation/test are:
+
+- FAKE-inpaint: 10,840 / 1,355 / 1,355.
+- FAKE-StyleGAN2: 5,420 / 677 / 677.
+- FAKE-GeoSynth: 5,420 / 678 / 678.
 
 ```bash
 python scripts/validate_dataset.py --dataset-root /path/to/DATASET_ROOT
 ```
 
-The expected counts are 21,680/class for training and 2,710/class for validation and test. FAKE contains 10,840/1,355/1,355 inpainting images, 5,420/677/677 StyleGAN2 images, and 5,420/678/678 GeoSynth images across train/validation/test.
+Use scene/source-image-disjoint splits. All manipulated variants of the same source image must remain in its assigned split.
 
-## Main benchmark
+## Main benchmark and binary detectors
 
 ```bash
 python scripts/train_main.py \
   --dataset-root /path/to/DATASET_ROOT \
   --model swin_b \
-  --augmentation lightaug \
   --output-dir outputs/main/swin_b
-```
 
-Run the same command for the model keys listed in `configs/experiment_matrix.yaml`. The
-default batch size is fixed at 72 for Swin-B and 64 for the other clean adapters, satisfying
-Table 2's reported 64-72 range; `--batch-size` is available only when hardware requires an
-override. GeoRSCLIP, RemoteCLIP, and SatDINO require their public foundation checkpoint via
-`--pretrained-checkpoint`. SatlasPretrain uses its package-supplied weights.
-
-## Binary specialists
-
-```bash
 python scripts/train_binary.py \
   --dataset-root /path/to/DATASET_ROOT \
-  --model swin_b \
-  --attack FAKE \
+  --model swin_b --attack FAKE \
   --output-dir outputs/binary/swin_b/real_vs_fake
 ```
 
-Repeat with `PIXEL` and `PATCH`. The final threshold is chosen on validation data to maximize attack-class F1.
+Model keys are listed in `configs/experiment_matrix.yaml`. Repeat the binary experiment with `--attack PIXEL` and `--attack PATCH`.
 
-## FAKE LOMO
+## FAKE source shift and manipulation variants
 
 ```bash
 python scripts/train_fake_lomo.py \
   --dataset-root /path/to/DATASET_ROOT \
-  --model swin_b \
-  --held-out FAKE-inpaint \
+  --model swin_b --held-out FAKE-inpaint \
   --output-dir outputs/lomo/swin_b/holdout_inpaint
 ```
 
-Repeat for `FAKE-GeoSynth` and `FAKE-StyleGAN2`, and for the five representative architectures. REAL, PIXEL, and PATCH remain unchanged; only the held-out FAKE subtype is removed from train/validation.
-
-## PIXEL/PATCH variants
-
-Generate the paper's main PIXEL setting with `--budget 200`, and stress tests with `--budget 50` or `--budget 400`:
+Repeat for FAKE-StyleGAN2 and FAKE-GeoSynth. Only the held-out FAKE subtype is removed from training and validation; REAL, PIXEL, and PATCH remain unchanged.
 
 ```bash
 python scripts/generate_pixel.py \
-  --input-root /path/to/split/REAL \
-  --output-root /path/to/variant/PIXEL \
-  --placement oracle \
-  --budget 50
-```
+  --input-root /path/to/test/REAL \
+  --output-root /path/to/pixel_B50/PIXEL \
+  --placement oracle --budget 50
 
-The no-oracle control changes only `--placement random`. Generate the square-PATCH stress set with:
-
-```bash
 python scripts/generate_patch.py \
-  --input-root /path/to/split/REAL \
-  --output-root /path/to/variant/PATCH \
+  --input-root /path/to/test/REAL \
+  --output-root /path/to/square_patch/PATCH \
   --geometry square --radius 5
 ```
 
-Then evaluate a balanced variant tree using `evaluate_attack_variant.py`, or a PIXEL-only no-oracle tree using `evaluate_pixel_no_oracle.py`.
+Use PIXEL B=200 for the main setting and B=50/B=400 for stress tests. The no-oracle control uses `--placement random`. Evaluate the balanced variant tree with `evaluate_attack_variant.py`, or the PIXEL-only no-oracle set with `evaluate_pixel_no_oracle.py`.
+
+Generation scripts expose their parameters through `--help`. Settings not fully specified in the paper, including the exact prompt bank, GeoSynth bottom-crop depth, and some PATCH optimization parameters, have explicit implementation defaults. These defaults should not be interpreted as independently verified original-run settings.
 
 ## FSC transfer and adaptation
 
-FSC manifests use columns `path,label,source_id,split`. All variants sharing a source image ID must remain in the same split.
+FSC inventory CSVs contain `path,label,source_id`; generated manifests additionally contain `split`. Relative image paths are resolved against the manifest's directory, so keep the inventory and output manifest in the same directory when using relative paths.
 
 ```bash
 python scripts/prepare_fsc_splits.py \
   --inventory /path/to/fsc_inventory.csv \
   --output-manifest /path/to/fsc_manifest.csv
 
+python scripts/evaluate_fsc_zero_adaptation.py \
+  --manifest /path/to/fsc_manifest.csv \
+  --mode multi --model swin_b \
+  --checkpoint outputs/main/swin_b/best_checkpoint.pth \
+  --output-dir outputs/fsc/swin_b/zero/multi
+
+python scripts/evaluate_fsc_zero_adaptation.py \
+  --manifest /path/to/fsc_manifest.csv \
+  --mode binary --attack FAKE --model swin_b \
+  --checkpoint outputs/binary/swin_b/real_vs_fake/best_checkpoint.pth \
+  --threshold-json outputs/binary/swin_b/real_vs_fake/validation_threshold.json \
+  --output-dir outputs/fsc/swin_b/zero/real_vs_fake
+
 python scripts/finetune_fsc.py \
   --manifest /path/to/fsc_manifest.csv \
-  --mode multi \
-  --shots-per-class 200 \
-  --model swin_b \
+  --mode multi --shots-per-class 200 --model swin_b \
   --in-domain-checkpoint outputs/main/swin_b/best_checkpoint.pth \
   --output-dir outputs/fsc/swin_b/multi/shot_200
 ```
 
-Use `--mode binary --attack FAKE|PIXEL|PATCH` for specialists. The code fully fine-tunes
-backbone and head parameters for at most 20 epochs with Table 2 early stopping.
+The zero-adaptation manifest contains 2,710 images per class. Adaptation reserves 542 images per class for validation and 542 per class for test; the remaining source-disjoint images form the adaptation pool. Repeat fine-tuning for 50, 200, and 1000 images per class, and use `--mode binary --attack FAKE|PIXEL|PATCH` with the matching binary in-domain checkpoint for specialists.
 
-For binary zero-adaptation evaluation, reuse the threshold selected on the original in-domain
-validation split; FSC labels are not used:
+### Binary, Multi-C, and Multi-E comparisons
+
+- **Binary:** use the validation-selected attack-F1 threshold.
+- **Multi-C:** collapse four-way argmax predictions into REAL versus non-REAL. Use `1-p(REAL)` for AUPRC.
+- **Multi-E:** preserve exact class predictions. REAL is correct only when predicted REAL; the evaluated attack is correct only when that exact family is predicted. Other-family predictions remain errors, not REAL predictions. Balanced accuracy averages exact REAL recall and exact attack recall. Attack F1 is the one-vs-rest F1 for the evaluated attack, and AUPRC uses its class probability.
+
+The comparison script encodes other-family Multi-E predictions as `-1`, distinct from REAL=`0` and the evaluated attack=`1`. This preserves exact correctness in balanced accuracy, bootstrap intervals, and McNemar testing.
 
 ```bash
-python scripts/evaluate_fsc_zero_adaptation.py \
-  --manifest /path/to/fsc_zero_adaptation_manifest.csv \
-  --mode binary --attack FAKE \
-  --model swin_b \
-  --checkpoint outputs/binary/swin_b/real_vs_fake/best_checkpoint.pth \
-  --threshold-json outputs/binary/swin_b/real_vs_fake/validation_threshold.json \
-  --output-dir outputs/fsc/swin_b/zero/real_vs_fake
+python scripts/compare_binary_multi.py \
+  --setting fsc --attack FAKE \
+  --binary-test outputs/fsc/swin_b/zero/real_vs_fake/predictions.csv \
+  --multi-test outputs/fsc/swin_b/zero/multi/predictions.csv \
+  --binary-threshold-json outputs/binary/swin_b/real_vs_fake/validation_threshold.json \
+  --output-dir outputs/comparisons/fsc/swin_b/zero/FAKE
 ```
 
-`compare_binary_multi.py --setting in-domain` uses Multi-C hard decisions (four-way argmax
-collapsed to REAL/non-REAL) and ordinary paired image-level bootstrap. `--setting fsc` uses
-Multi-E hard decisions (argmax must equal the evaluated attack family) and paired stratified
-bootstrap, with 10,000 replicates for BA/F1 and 1,000 for AUPRC.
+Use `--setting in-domain` with the corresponding in-domain prediction files for Table 11. For adapted FSC comparisons, use the adapted binary run's `validation_threshold.json` and the prediction files under each adapted run's `test/` directory.
 
-## Low-prevalence triage
+In-domain comparisons use ordinary paired image-level bootstrap; FSC comparisons use paired class-stratified bootstrap (10,000 replicates for BA/F1 and 1,000 for AUPRC). McNemar testing uses the exact two-sided binomial form on paired prediction correctness. `summarize_fsc_comparisons.py` summarizes 15 model-attack comparisons (five representative models by three attack families) for one adaptation setting.
+
+## Augmentation and low-prevalence screening
 
 ```bash
+python scripts/run_augmentation_study.py \
+  --dataset-root /path/to/DATASET_ROOT \
+  --output-root outputs/augmentation \
+  --foundation-checkpoint georsclip_b32=/path/to/GeoRSCLIP.pt
+
 python scripts/low_prevalence_triage.py \
   --predictions outputs/main/swin_b/test/predictions.csv \
   --output-json outputs/triage/swin_b.json
 ```
 
-The implementation uses `1-p(REAL)`, simulated prevalence 1%, 5%, and 10%, a 90%-recall operating point, 2,000 ordinary image-level bootstrap replicates, and the exact one-sided upper bound when zero false positives are observed.
+The augmentation study trains the five representative models under LightAug, MedAug, and HeavyAug. Validation and test transforms remain deterministic.
 
-## Outputs
+Triage uses `1-p(REAL)`, prevalence levels of 1%, 5%, and 10%, approximately 90% recall, and 2,000 ordinary bootstrap replicates with the operating point recomputed. The same script accepts four-way predictions from in-domain, FSC zero-adaptation, and FSC adapted runs. It also reports the exact one-sided false-alarm upper bound when no false positives are observed.
 
-Training scripts retain:
+## Outputs and tests
 
-- `best_checkpoint.pth` and `run_metadata.json`;
-- complete epoch history;
-- per-image paths, labels, predictions, and class probabilities;
-- confusion matrices and aggregate metrics;
-- FAKE-subtype metrics where applicable;
-- bootstrap configuration, estimates, and intervals.
+Training scripts save checkpoints, run metadata, epoch history, per-image predictions and probabilities, confusion matrices, and evaluation metrics. Experiment-specific scripts additionally write subtype metrics, confidence intervals, diagnostics, or paired comparisons.
 
-Absolute data and checkpoint paths are command-line inputs and are not embedded in the clean source.
+```bash
+python -m pytest
+```
+
+Tests cover Table 2 protocol constants, the model registry, exact-family scoring, paired statistics, SatDINO register/checkpoint structure, and deterministic generation utilities. Passing these checks is not a claim that all training experiments have been rerun or that published numerical results are guaranteed.
 
 ## License and citation
 
-An MIT license is supplied as a conventional software-release default. `CITATION.cff` cites both this software and the associated article.
+See `LICENSE` for the software license and `CITATION.cff` for the article citation.
