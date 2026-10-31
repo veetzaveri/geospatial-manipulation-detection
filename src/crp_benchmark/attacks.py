@@ -210,10 +210,9 @@ def optimize_adversarial_patch(
 ) -> PatchResult:
     """Optimize the learnable PATCH described in Equations 5-10.
 
-    Radius=5, momentum=0.75, and 50 steps are stated in the paper. The original
-    scripts containing P, alpha, lambda_TV, and the stopping threshold were not
-    recoverable; defaults for those values are transparent reconstruction choices
-    and remain CLI-configurable.
+    The default geometry is circular with radius 5, momentum 0.75, and up to
+    50 iterations. Patch count, step size, TV weight, confidence threshold,
+    and geometry are configurable through the generation command line.
     """
 
     boxes = detector_boxes(detector, image, score_threshold=box_score_threshold)
