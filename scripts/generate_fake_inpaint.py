@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model-id",
         default="runwayml/stable-diffusion-inpainting",
-        help="Reconstructed default; confirm against the unavailable original script.",
+        help="Hugging Face model ID or local directory for the inpainting pipeline.",
     )
     parser.add_argument("--steps", type=int, default=15)
     parser.add_argument("--guidance-scale", type=float, default=7.5)
