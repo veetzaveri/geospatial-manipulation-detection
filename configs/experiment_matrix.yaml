@@ -82,7 +82,7 @@ patch_variants:
   radius: 5
   iterations: 50
   momentum: 0.75
-  reconstructed_unverified_defaults:
+  optimization_defaults:
     num_patches: 1
     step_size: 0.01
     tv_weight: 0.0001
