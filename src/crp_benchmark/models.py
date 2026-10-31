@@ -15,7 +15,6 @@ class ModelSpec:
     paper_name: str
     backend: str
     model_id: str
-    recovered: bool = False
     notes: str = ""
 
 
@@ -26,8 +25,6 @@ MODEL_SPECS: dict[str, ModelSpec] = {
         "Swin Transformer Base (patch4-window7-224)",
         "timm",
         "swin_base_patch4_window7_224.ms_in22k",
-        True,
-        "Exact identifier recovered from the original Swin-B script.",
     ),
     "swin_t": ModelSpec(
         "swin_t",
@@ -56,8 +53,7 @@ MODEL_SPECS: dict[str, ModelSpec] = {
         "EfficientNetV2-S (ImageNet-21k pretraining, ImageNet-1k fine-tuned)",
         "timm",
         "tf_efficientnetv2_s.in21k_ft_in1k",
-        True,
-        "Prior code used the legacy timm alias tf_efficientnetv2_s_in21ft1k.",
+        "Supports dotted and legacy timm aliases.",
     ),
     "effnet_b5": ModelSpec("effnet_b5", "EfficientNet-B5", "timm", "tf_efficientnet_b5.in1k"),
     "effnet_b4": ModelSpec("effnet_b4", "EfficientNet-B4", "timm", "tf_efficientnet_b4.in1k"),
@@ -92,8 +88,7 @@ MODEL_SPECS: dict[str, ModelSpec] = {
         "SatlasPretrain Aerial Swin-B (Single-Image)",
         "satlas",
         "Aerial_SwinB_SI",
-        True,
-        "The Satlas model identifier and fpn=True setting were recovered.",
+        "Classification head with fpn=True.",
     ),
 }
 
@@ -112,9 +107,8 @@ ALIASES = {
     "satlas": "satlas_swin_b",
 }
 
-# Table 2 reports a fixed architecture-dependent main-benchmark batch size in
-# the 64--72 range. The recovered Swin-B script supplies the exact value 72;
-# the remaining clean adapters use the fixed lower endpoint, 64.
+# Architecture-fixed main-benchmark defaults within Table 2's 64--72 range:
+# Swin-B uses 72; the other architectures use 64.
 PAPER_MAIN_BATCH_SIZES = {key: 64 for key in MODEL_SPECS}
 PAPER_MAIN_BATCH_SIZES["swin_b"] = 72
 
