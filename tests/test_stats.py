@@ -3,6 +3,7 @@ import numpy as np
 from crp_benchmark.stats import (
     mcnemar_paired_correctness,
     paired_binary_bootstrap,
+    pairwise_decision_metrics,
     prevalence_adjusted_precision,
     select_attack_f1_threshold,
     triage_metrics,
@@ -63,3 +64,44 @@ def test_fsc_paired_bootstrap_records_stratified_sampling():
         stratified=True,
     )
     assert result["bootstrap_sampling"] == "class_stratified"
+
+
+def test_other_family_on_real_is_not_a_correct_negative():
+    result = pairwise_decision_metrics(np.array([0, 1]), np.array([-1, 1]))
+    assert result["balanced_accuracy"] == 0.5
+    assert result["f1_attack"] == 1.0
+
+
+def test_other_family_on_attack_is_a_false_negative():
+    result = pairwise_decision_metrics(np.array([0, 1]), np.array([0, -1]))
+    assert result["balanced_accuracy"] == 0.5
+    assert result["f1_attack"] == 0.0
+
+
+def test_exact_family_bootstrap_and_mcnemar_use_actual_correctness():
+    labels = np.array([0, 0, 1, 1])
+    result = paired_binary_bootstrap(
+        labels,
+        labels,
+        np.array([0.1, 0.1, 0.9, 0.9]),
+        np.array([-1, 0, 1, -1]),
+        np.array([0.1, 0.1, 0.9, 0.1]),
+        replicates_thresholded=50,
+        replicates_auprc=20,
+        stratified=True,
+    )
+    assert result["b"]["balanced_accuracy"] == 0.5
+    assert np.isclose(result["b"]["f1_attack"], 2 / 3)
+    assert result["delta_b_minus_a"]["balanced_accuracy"]["estimate"] == -0.5
+    assert result["mcnemar"]["a_correct_b_wrong"] == 2
+    assert result["mcnemar"]["a_wrong_b_correct"] == 0
+
+
+def test_pairwise_metrics_match_sklearn_for_ordinary_binary_predictions():
+    from sklearn.metrics import balanced_accuracy_score, f1_score
+
+    labels = np.array([0, 0, 0, 1, 1, 1])
+    predictions = np.array([0, 0, 1, 1, 0, 1])
+    result = pairwise_decision_metrics(labels, predictions)
+    assert result["balanced_accuracy"] == balanced_accuracy_score(labels, predictions)
+    assert result["f1_attack"] == f1_score(labels, predictions)
