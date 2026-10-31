@@ -270,8 +270,7 @@ def mcnemar_paired_correctness(
 ) -> dict[str, float | int | str]:
     """Exact two-sided McNemar test on paired hard-decision correctness.
 
-    The paper did not record exact-vs-chi-square or correction settings. This
-    release uses the exact binomial form and states that choice in its outputs.
+    Uses the exact binomial form and records the method in its outputs.
     """
 
     correct_a = np.asarray(predictions_a) == np.asarray(labels)
