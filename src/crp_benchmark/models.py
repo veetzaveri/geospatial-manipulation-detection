@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
+import warnings
 
 import torch
 from torch import nn
@@ -18,10 +19,7 @@ class ModelSpec:
     notes: str = ""
 
 
-# The Swin-B and EfficientNetV2 identifiers are recovered from prior project
-# artifacts. Standard-model identifiers otherwise implement the architecture
-# named in the paper, but the unavailable original per-model scripts should be
-# consulted before claiming bit-for-bit checkpoint reproduction.
+
 MODEL_SPECS: dict[str, ModelSpec] = {
     "swin_b": ModelSpec(
         "swin_b",
@@ -86,7 +84,7 @@ MODEL_SPECS: dict[str, ModelSpec] = {
         "satdino_b16",
         "SatDINO (ViT-B/16)",
         "satdino",
-        "vit_base_patch16_224",
+        "satdino_vit_base_patch16_224_gsd_register",
         notes="Pass the SatDINO checkpoint with --pretrained-checkpoint.",
     ),
     "satlas_swin_b": ModelSpec(
@@ -212,10 +210,29 @@ def _load_weights(
     checkpoint: str | Path,
     *,
     strict: bool = False,
+    required_prefixes: tuple[str, ...] | None = None,
 ) -> tuple[list[str], list[str]]:
     payload = torch.load(Path(checkpoint), map_location="cpu", weights_only=False)
     state = _extract_state_dict(payload)
+    if required_prefixes:
+        required = {
+            key for key in model.state_dict() if key.startswith(required_prefixes)
+        }
+        missing_required = sorted(required - set(state))
+        if not required or missing_required:
+            raise RuntimeError(
+                f"{checkpoint} does not contain a complete required backbone. "
+                f"Missing {len(missing_required)} tensors: {missing_required[:8]}"
+            )
     result = model.load_state_dict(state, strict=strict)
+    if result.missing_keys or result.unexpected_keys:
+        warnings.warn(
+            f"Checkpoint {checkpoint}: {len(result.missing_keys)} missing and "
+            f"{len(result.unexpected_keys)} unexpected keys. "
+            f"Missing (first 8): {list(result.missing_keys)[:8]}; "
+            f"unexpected (first 8): {list(result.unexpected_keys)[:8]}",
+            stacklevel=2,
+        )
     return list(result.missing_keys), list(result.unexpected_keys)
 
 
@@ -253,25 +270,35 @@ def create_model(
         return model, spec
 
     if spec.backend == "open_clip":
-        if not pretrained_checkpoint:
+        if pretrained and not pretrained_checkpoint:
             raise ValueError(
                 f"{key} requires --pretrained-checkpoint; no paper checkpoint is bundled."
             )
         import open_clip
 
-        base_pretrained = "openai" if key == "georsclip_b32" else None
-        visual_model = open_clip.create_model(spec.model_id, pretrained=base_pretrained)
-        _load_weights(visual_model, pretrained_checkpoint, strict=False)
+        # External foundation weights initialize training. A complete experiment
+        # checkpoint already contains them and needs no second download at inference.
+        visual_model = open_clip.create_model(spec.model_id, pretrained=None)
+        if pretrained_checkpoint:
+            _load_weights(
+                visual_model,
+                pretrained_checkpoint,
+                strict=False,
+                required_prefixes=("visual.",),
+            )
         output_dim = int(visual_model.visual.output_dim)
         return OpenCLIPClassifier(visual_model, output_dim, num_classes), spec
 
     if spec.backend == "satdino":
-        if not pretrained_checkpoint:
+        if pretrained and not pretrained_checkpoint:
             raise ValueError("satdino_b16 requires --pretrained-checkpoint")
-        import timm
+        from .satdino import SatDINOEncoder
 
-        encoder = timm.create_model(spec.model_id, pretrained=False, num_classes=0)
-        _load_weights(encoder, pretrained_checkpoint, strict=False)
+        encoder = SatDINOEncoder()
+        if pretrained_checkpoint:
+            # Official teacher checkpoints must match the full backbone,
+            # including the GSD register and 198-token positional embedding.
+            _load_weights(encoder, pretrained_checkpoint, strict=True)
         feature_dim = int(encoder.num_features)
         return FeatureClassifier(encoder, feature_dim, num_classes), spec
 
