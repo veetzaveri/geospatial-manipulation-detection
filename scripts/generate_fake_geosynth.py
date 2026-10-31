@@ -31,7 +31,7 @@ def parse_args() -> argparse.Namespace:
         "--bottom-crop-pixels",
         type=int,
         default=8,
-        help="Paper says 'slight' bottom crop; exact original value was not recoverable.",
+        help="Pixels cropped from the bottom before final resizing (default: 8).",
     )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", default="auto")
