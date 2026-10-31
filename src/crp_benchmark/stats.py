@@ -7,11 +7,44 @@ from scipy.stats import binomtest
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
-    balanced_accuracy_score,
     f1_score,
 )
 
 Array = np.ndarray
+
+
+def pairwise_decision_metrics(labels: Array, predictions: Array) -> dict[str, float]:
+    """Balanced accuracy and attack F1 for a matched REAL/attack subset.
+
+    Truth uses 0=REAL and 1=the evaluated attack. Predictions may additionally
+    use -1 for a different attack family under Multi-E. Such a prediction is
+    wrong for either true class; it must never be relabeled as REAL.
+
+    Attack F1 is the one-vs-rest F1 of class 1. Other-family predictions on
+    attack examples are false negatives, while only predictions of class 1
+    on REAL examples are false positives for this specific attack class.
+    """
+    labels = np.asarray(labels)
+    predictions = np.asarray(predictions)
+    if labels.ndim != 1 or predictions.ndim != 1 or labels.shape != predictions.shape:
+        raise ValueError("labels and predictions must be equal-length one-dimensional arrays")
+    if not len(labels) or not np.isin(labels, [0, 1]).all():
+        raise ValueError("Truth must contain REAL=0 and/or attack=1")
+    if not np.isin(predictions, [-1, 0, 1]).all():
+        raise ValueError("Predictions must be REAL=0, attack=1, or other-family=-1")
+    recalls = [
+        float(np.mean(predictions[labels == label] == label))
+        for label in (0, 1)
+        if np.any(labels == label)
+    ]
+    true_positive = int(np.sum((labels == 1) & (predictions == 1)))
+    false_positive = int(np.sum((labels == 0) & (predictions == 1)))
+    false_negative = int(np.sum((labels == 1) & (predictions != 1)))
+    denominator = 2 * true_positive + false_positive + false_negative
+    return {
+        "balanced_accuracy": float(np.mean(recalls)),
+        "f1_attack": float(2 * true_positive / denominator) if denominator else 0.0,
+    }
 
 
 def select_attack_f1_threshold(labels: Array, scores: Array) -> float:
@@ -177,10 +210,10 @@ def paired_binary_bootstrap(
         raise ValueError("Labels, predictions, and scores must have identical lengths")
 
     def ba(predictions: Array, idx: Array) -> float:
-        return float(balanced_accuracy_score(labels[idx], predictions[idx]))
+        return pairwise_decision_metrics(labels[idx], predictions[idx])["balanced_accuracy"]
 
     def attack_f1(predictions: Array, idx: Array) -> float:
-        return float(f1_score(labels[idx], predictions[idx], pos_label=1, zero_division=0))
+        return pairwise_decision_metrics(labels[idx], predictions[idx])["f1_attack"]
 
     rng = np.random.default_rng(seed)
     ba_delta = np.empty(replicates_thresholded)
