@@ -38,11 +38,12 @@
   B=200 main setting, B=50/400 stress settings, 5x5 neighborhoods, epsilon 0.05, dummy
   weight 0.05, box restriction, and random-placement control.
 - PATCH implements circular radius-5 training geometry, square radius-5 stress geometry,
-  momentum 0.75 and 50 iterations. The paper does not state the exact patch count, step size,
-  TV weight, early-stop confidence or detector box threshold; those are explicit CLI options.
+  momentum 0.75 and 50 iterations. Patch count, step size, TV weight, early-stop confidence,
+  and detector box threshold are explicit CLI options.
 - FAKE-inpaint implements the reported 512x512 canvas, deterministic 2-3 rectangle/ellipse
   masks, 0.18-0.35 extent, 35% cap, 15 steps, guidance 7.5, strength 0.95 and 8-pixel
-  feathered composite. The exact original prompt bank/model ID is not stated in the paper.
+  feathered composite. The prompt bank is defined in `crp_benchmark.generation`; the pipeline
+  model is selected through `--model-id`.
 - FAKE-GeoSynth implements the plain text-to-image pipeline, 512x512 generation, 15 steps,
-  guidance 5.5 and bottom crop. The exact prompt bank and crop depth are not stated in the
-  paper and remain explicit inputs.
+  guidance 5.5 and bottom crop. The prompt bank is defined in `crp_benchmark.generation`;
+  `--bottom-crop-pixels` controls the crop depth.
