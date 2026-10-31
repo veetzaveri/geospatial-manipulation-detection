@@ -8,9 +8,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 from .seeding import stable_seed
 
-# The original prompt-bank file was not recoverable. These prompts implement
-# the paper's stated fixed bank of overhead satellite-scene descriptions and
-# are identified as reconstructed in docs/PROVENANCE.md.
+# Fixed overhead-scene prompt banks used by the generation entry points.
 INPAINT_PROMPTS = (
     "high-resolution overhead satellite image of buildings, roads, and vegetation",
     "realistic aerial imagery of an urban area viewed directly from above",
@@ -83,7 +81,7 @@ def feathered_hard_composite(
     *,
     feather_radius: float = 8.0,
 ) -> Image.Image:
-    """Reconstruct the final FAKE-inpaint image described in the paper."""
+    """Create the final FAKE-inpaint image using a feathered alpha composite."""
 
     original = original.convert("RGB")
     inpainted = inpainted.convert("RGB").resize(original.size, Image.Resampling.BICUBIC)
