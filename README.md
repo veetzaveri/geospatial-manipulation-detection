@@ -154,7 +154,7 @@ python scripts/generate_patch.py \
 
 Use PIXEL B=200 for the main setting and B=50/B=400 for stress tests. The no-oracle control uses `--placement random`. Evaluate the balanced variant tree with `evaluate_attack_variant.py`, or the PIXEL-only no-oracle set with `evaluate_pixel_no_oracle.py`.
 
-Generation scripts expose their parameters through `--help`. Settings not fully specified in the paper, including the exact prompt bank, GeoSynth bottom-crop depth, and some PATCH optimization parameters, have explicit implementation defaults. These defaults should not be interpreted as independently verified original-run settings.
+Generation scripts document their parameters through `--help`. Prompt banks are defined in `src/crp_benchmark/generation.py`; pipeline model IDs, GeoSynth crop depth, and PATCH optimization settings are configurable through the corresponding scripts.
 
 ## FSC transfer and adaptation
 
@@ -233,7 +233,7 @@ Training scripts save checkpoints, run metadata, epoch history, per-image predic
 python -m pytest
 ```
 
-Tests cover Table 2 protocol constants, the model registry, exact-family scoring, paired statistics, SatDINO register/checkpoint structure, and deterministic generation utilities. Passing these checks is not a claim that all training experiments have been rerun or that published numerical results are guaranteed.
+Tests cover Table 2 protocol constants, the model registry, exact-family scoring, paired statistics, SatDINO register/checkpoint structure, and deterministic generation utilities.
 
 ## License and citation
 
