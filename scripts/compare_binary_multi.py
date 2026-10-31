@@ -7,9 +7,20 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import average_precision_score, balanced_accuracy_score, f1_score
+from sklearn.metrics import average_precision_score
 
-from crp_benchmark.stats import paired_binary_bootstrap
+from crp_benchmark.stats import paired_binary_bootstrap, pairwise_decision_metrics
+
+
+def exact_family_predictions(predicted_names, attack: str) -> np.ndarray:
+    """Keep other-family predictions distinct from both REAL and the attack."""
+    attack = attack.upper()
+    if attack not in {"FAKE", "PIXEL", "PATCH"}:
+        raise ValueError(f"Unknown attack family: {attack}")
+    names = np.asarray(predicted_names)
+    if not np.isin(names, ["REAL", "PIXEL", "PATCH", "FAKE"]).all():
+        raise ValueError("Predictions contain an unknown four-way class name")
+    return np.where(names == "REAL", 0, np.where(names == attack, 1, -1))
 
 
 def parse_args() -> argparse.Namespace:
@@ -92,7 +103,7 @@ def aligned(binary_path: str, multi_path: str, attack: str, key_mode: str) -> pd
     merged["score_multi_c"] = 1.0 - merged.prob_REAL
     merged["score_multi_e"] = merged[f"{binary_score_column}_multi"]
     merged["pred_multi_c"] = (merged.pred_label_name != "REAL").astype(int)
-    merged["pred_multi_e"] = (merged.pred_label_name == attack).astype(int)
+    merged["pred_multi_e"] = exact_family_predictions(merged.pred_label_name, attack)
     return merged
 
 
@@ -115,8 +126,7 @@ def metrics(
 ) -> dict:
     output = {
         "decision_rule": decision_rule,
-        "balanced_accuracy": float(balanced_accuracy_score(labels, predictions)),
-        "f1_attack": float(f1_score(labels, predictions, pos_label=1, zero_division=0)),
+        **pairwise_decision_metrics(labels, predictions),
         "auprc": float(average_precision_score(labels, scores)),
     }
     if threshold is not None:
@@ -150,7 +160,7 @@ def main() -> None:
             labels,
             pred_multi_e,
             test.score_multi_e.to_numpy(),
-            f"four-way argmax exactly equals {args.attack}",
+            f"exact-label REAL/{args.attack}; other-family argmax is an error",
         ),
     }
     stratified = args.setting == "fsc"
@@ -182,7 +192,11 @@ def main() -> None:
         "primary_multi_rule": "multi_c" if args.setting == "in-domain" else "multi_e",
         "multi_c_hard_decision": "four-way argmax != REAL",
         "multi_c_auprc_score": "1 - p(REAL)",
-        "multi_e_hard_decision": f"four-way argmax == {args.attack}",
+        "multi_e_hard_decision": (
+            f"REAL=0, {args.attack}=1, other attack families=-1; "
+            "balanced accuracy averages exact REAL and attack recall"
+        ),
+        "multi_e_attack_f1": f"one-vs-rest F1 for predicted class {args.attack}",
         "multi_e_auprc_score": f"p({args.attack})",
         "binary_threshold_selection": "validation attack-class F1",
         "binary_threshold_file": str(Path(args.binary_threshold_json)),
